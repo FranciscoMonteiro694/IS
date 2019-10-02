@@ -1,0 +1,5 @@
+1001	Renaut	Clio	1200cc	90cv	4.2l	12-OA-79	1
+1002	Renaut	Megane	1201cc	91cv	4.3l	13-OB-80	2
+1003	Opel	Corsa	1202cc	92cv	4.4l	14-OC-81	3
+1004	VW	Polo	1203cc	93cv	4.5l	15-OD-82	4
+1005	Ferrari	LaFerrari	2000cc	920cv	20.5l	99-99-99	4

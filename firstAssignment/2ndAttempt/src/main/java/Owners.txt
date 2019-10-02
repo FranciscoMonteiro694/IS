@@ -1,0 +1,4 @@
+1	Pedro	232123431	Coimbra
+2	João	232123432	Lisboa
+3	Roberto	232123433	Leiria
+4	José	232123434	Porto

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ListaDonos>
+    <owner uniqueId="1">
+        <name>Pedro</name>
+        <address>Coimbra</address>
+        <telephone>232123431</telephone>
+    </owner>
+    <owner uniqueId="2">
+        <name>João</name>
+        <address>Lisboa</address>
+        <telephone>232123432</telephone>
+    </owner>
+    <owner uniqueId="3">
+        <name>Roberto</name>
+        <address>Leiria</address>
+        <telephone>232123433</telephone>
+    </owner>
+    <owner uniqueId="4">
+        <name>José</name>
+        <address>Porto</address>
+        <telephone>232123434</telephone>
+    </owner>
+</ListaDonos>
