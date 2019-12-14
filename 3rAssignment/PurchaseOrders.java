@@ -88,27 +88,31 @@ public class PurchaseOrders {
                         }
                     }
                 }
-                // Escolhe um id de um item aleatoriamente
-                Random rnd = new Random();
-                int indiceItemRandom = rnd.nextInt(itens.size());
-                int idItemRandom = itens.get(indiceItemRandom);
+                if(itens.size()!=0 ) {
+                    // Escolhe um id de um item aleatoriamente
+                    Random rnd = new Random();
+                    int indiceItemRandom = rnd.nextInt(itens.size());
+                    int idItemRandom = itens.get(indiceItemRandom);
 
-                // Cria uma purchase aleatoriamente
-                Purchase p = new Purchase(idItemRandom,numeroRandomFloat(1,10),numeroRandomINT(1,10));
+                    // Cria uma purchase aleatoriamente
+                    Purchase p = new Purchase(idItemRandom, numeroRandomINT(1, 5), numeroRandomINT(1, 5));
                         /*System.out.println("ID item Random: "+p.getItem_id());
                         System.out.println("Teste preço random: "+p.getPrice());
                         System.out.println("Teste unidades random: "+p.getUnits());*/
 
-                // Converter de Purchase para json e de json para string
-                JSONObject jsonObject = new JSONObject(p);
-                String myJson = jsonObject.toString();
-                //System.out.println("Json novo:"+myJson);
-                // Adiciona ao tópico Purchases
-                // Criar um producer
-                Producer<String, String> producer = new KafkaProducer<>(props);
-                producer.send(new ProducerRecord<String, String>(topicPurchases,Integer.toString(p.getItem_id()),myJson));
-                producer.close();
-                Thread.sleep(3000);
+                    // Converter de Purchase para json e de json para string
+                    JSONObject jsonObject = new JSONObject(p);
+                    String myJson = jsonObject.toString();
+                    //System.out.println("Json novo:"+myJson);
+                    // Adiciona ao tópico Purchases
+                    // Criar um producer
+                    Producer<String, String> producer = new KafkaProducer<>(props);
+                    producer.send(new ProducerRecord<String, String>(topicPurchases, Integer.toString(p.getItem_id()), myJson));
+                    System.out.println("Purchase adicionada!");
+                    producer.close();
+                    Thread.sleep(10000);
+                }
+
             }
         } finally {
             consumer.close();

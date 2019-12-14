@@ -27,7 +27,7 @@ public class Customers {
         Properties props = new Properties();
 
         // Vindos do consumer (Inicio)
-        props.put("group.id", "Kafka.PurchaseOrders");
+        props.put("group.id", "Kafka.CustomersOrders");// Mexi aqui, tinha igual ao PurchaseOrders
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "exercises-application");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -69,14 +69,20 @@ public class Customers {
 
         List<Integer> itens = new ArrayList<Integer>();
         List<Integer> paises = new ArrayList<Integer>();
+
+        // Para guardar o schema
+        JSONObject schemaItem=null;
+        JSONObject schemaPais=null;
         try {
 
             while (true) {
                 ConsumerRecords<String, String> records = consumer.poll(100);
                 for (ConsumerRecord<String, String> record : records) {
                     JSONObject json = new JSONObject(record.value());
+
                     // Se for um item
                     if (json.getJSONObject("payload").has("item_id")) {
+                        schemaItem=json.getJSONObject("schema");
                         // Se a lista de indices de itens ainda não tiver o indice, adicionar
                         if (!itens.contains(json.getJSONObject("payload").getInt("item_id"))) {
                             itens.add(json.getJSONObject("payload").getInt("item_id"));
@@ -84,6 +90,7 @@ public class Customers {
                     }
                     // Se for um país
                     else{
+                        schemaPais=json.getJSONObject("schema");
                         // Se a lista de indices de paises ainda não tiver o indice, adicionar
                         if (!paises.contains(json.getJSONObject("payload").getInt("country_id"))) {
                             paises.add(json.getJSONObject("payload").getInt("country_id"));
@@ -100,14 +107,15 @@ public class Customers {
                     int idPaisRandom = paises.get(indicePaisRandom);
 
                     // Cria uma sale aleatoriamente
-                    Sale s = new Sale(idItemRandom, numeroRandomFloat(1, 10), numeroRandomINT(1, 10), idPaisRandom);
+                    Sale s = new Sale(idItemRandom, numeroRandomINT(1, 5), numeroRandomINT(1, 5), idPaisRandom);
                         /*System.out.println("ID item Random: "+s.getItem_id());
                         System.out.println("Teste preço random: "+s.getPrice());
                         System.out.println("Teste unidades random: "+s.getUnits());
                         System.out.println("Teste preço random: "+s.getCountry_id());*/
 
-                    // Converter de Purchase para json e de json para string
+                    // Converter de Sale para json e de json para string
                     JSONObject jsonObject = new JSONObject(s);
+                    jsonObject.append("schema",schemaItem);
                     String myJson = jsonObject.toString();
                     //System.out.println("Json novo:"+myJson);
                     // Adiciona ao tópico Sales
@@ -116,7 +124,7 @@ public class Customers {
                     producer.send(new ProducerRecord<String, String>(topicSales, Integer.toString(s.getItem_id()), myJson));
                     System.out.println("Sale adicionada!");
                     producer.close();
-                    Thread.sleep(3000);
+                    Thread.sleep(10000);
                 }
             }
         } finally {

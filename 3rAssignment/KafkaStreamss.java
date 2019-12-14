@@ -19,7 +19,7 @@ public class KafkaStreamss {
 
     public static void main(String[] args) throws InterruptedException, IOException {
         String topicSales = "Sales";
-        String topicResults = "Results";
+        String topicPurchases = "Purchases";
 
         java.util.Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "exercises-application");
@@ -28,34 +28,65 @@ public class KafkaStreamss {
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
         StreamsBuilder builder = new StreamsBuilder();
-        KStream<String, String> lines = builder.stream(topicSales);
+        // Stream topicSales
+        KStream<String, String> sales = builder.stream(topicSales);
+        // Stream topicPurchases
+        KStream<String, String> purchases = builder.stream(topicPurchases);
+
         //lines.foreach((key, value) -> System.out.println(key + " => " + value));
 
+        // Revenue per item
+        KTable<String, Integer> revenueperItem =  sales.mapValues(v->transform(v)).groupByKey(Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->v1+v2);
+        revenueperItem.toStream().mapValues((k,v)->createJsonRevenueItem(k,v)).to("TopicRevenueItem", Produced.with(Serdes.String(),Serdes.String()));
 
-        KTable<String, Float> revenue =  lines.mapValues(v->transform(v)).groupByKey(Grouped.with(Serdes.String(),Serdes.Float())).reduce((v1,v2)->v1+v2);
 
 
-        revenue.toStream().mapValues((k,v)->""+k +" -> "+v).to(topicResults, Produced.with(Serdes.String(),Serdes.String()));
+        // Expenses per item
+        KTable<String, Integer> expensesesperItem =  purchases.mapValues(v->transform(v)).groupByKey(Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->v1+v2);
+        expensesesperItem.toStream().mapValues((k,v)->createJsonExpensesItem(k,v)).to("TopicExpensesItem", Produced.with(Serdes.String(),Serdes.String()));
+
+        // Profit per item
+        KTable<String, Integer> profitperItem =revenueperItem.join(expensesesperItem,(r,e)->r-e);
+        profitperItem.toStream().mapValues((k,v)-> k + "=>"+v).to("TopicProfitItem", Produced.with(Serdes.String(),Serdes.String()));
+
+        /*// Total revenue
+        KTable<String, Integer> totalRevenue = sales.mapValues(v->transform(v)).groupBy((k, v) -> "Revenue Total",Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->v1+v2);
+        totalRevenue.toStream().mapValues((k,v)-> k + "=>"+v).to("TopicTotalRevenue", Produced.with(Serdes.String(),Serdes.String()));
+
+        // Total expenses
+        KTable<String, Integer> totalExpenses = purchases.mapValues(v->transform(v)).groupBy((k, v) -> "Expenses Total",Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->v1+v2);
+        totalRevenue.toStream().mapValues((k,v)-> k + "=>"+v).to("TopicTotalExpenses", Produced.with(Serdes.String(),Serdes.String()));*/
+
+        // Total profit
 
         KafkaStreams streams = new KafkaStreams(builder.build(), props);
         streams.start();
 
     }
 
-    /*
-    {"schema":{"type":"struct","fields":[{"type":"double","optional":false,"field":"revenue"},{"type":"double","optional":false,"field":"expenses"},{"type":"double","optional":false,"field":"profit"}],"optional":false,"name":"total data"},"payload":{"revenue":988500.0, "expenses":731430.0,"profit":257070.0}}
-     */
-/*    public String revenuesJson(String value){
+    public static String createJsonRevenueItem(String k,int value){
+        System.out.println("O item "+k+" tem de revenue: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"revenue\"}],\"optional\":false},\"payload\":{\"item_id\":"+k+",\"revenue\":"+ value +"}}";
+        System.out.println("Schema:         "+schema);
+        return schema;
 
-        JSONObject json = new JSONObject();
-
-    }*/
-    // Vai receber o value, pegar no units e price e multiplicar um pelo outro
-    private static float transform(String v) {
-        JSONObject json = new JSONObject(v);
-        System.out.println("Preço: "+json.getFloat("price"));
-        System.out.println("Unidades: "+json.getInt("units"));
-        System.out.println("Total: "+json.getFloat("price")*json.getInt("units"));
-        return json.getFloat("price")*json.getInt("units");
     }
+    public static String createJsonExpensesItem(String k,int value){
+        System.out.println("O item "+k+" tem de expense: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"expenses\"}],\"optional\":false},\"payload\":{\"item_id\":"+k+",\"expenses\":"+ value +"}}";
+        System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+    // Vai receber o value, pegar no units e price e multiplicar um pelo outro
+    // Em principio funciona tanto para a revenue do item, como para a expenses
+    private static int transform(String v) {
+        JSONObject json = new JSONObject(v);
+        System.out.println("Preço: "+json.getInt("price"));
+        System.out.println("Unidades: "+json.getInt("units"));
+        System.out.println("Total: "+json.getInt("price")*json.getInt("units"));
+        return json.getInt("price")*json.getInt("units");
+    }
+
+
 }

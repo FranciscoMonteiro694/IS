@@ -5,11 +5,11 @@ import java.io.Serializable;
 public class Sale implements Serializable {
 
     private int item_id;
-    private float price;
+    private int price;
     private int units;
     private int country_id;
 
-    public Sale(int item_id, float price, int units, int country_id) {
+    public Sale(int item_id, int price, int units, int country_id) {
         this.item_id = item_id;
         this.price = price;
         this.units = units;
@@ -24,11 +24,11 @@ public class Sale implements Serializable {
         this.item_id = item_id;
     }
 
-    public float getPrice() {
+    public int getPrice() {
         return price;
     }
 
-    public void setPrice(float price) {
+    public void setPrice(int price) {
         this.price = price;
     }
 
