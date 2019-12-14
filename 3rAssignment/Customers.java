@@ -70,9 +70,7 @@ public class Customers {
         List<Integer> itens = new ArrayList<Integer>();
         List<Integer> paises = new ArrayList<Integer>();
 
-        // Para guardar o schema
-        JSONObject schemaItem=null;
-        JSONObject schemaPais=null;
+
         try {
 
             while (true) {
@@ -82,7 +80,6 @@ public class Customers {
 
                     // Se for um item
                     if (json.getJSONObject("payload").has("item_id")) {
-                        schemaItem=json.getJSONObject("schema");
                         // Se a lista de indices de itens ainda não tiver o indice, adicionar
                         if (!itens.contains(json.getJSONObject("payload").getInt("item_id"))) {
                             itens.add(json.getJSONObject("payload").getInt("item_id"));
@@ -90,7 +87,6 @@ public class Customers {
                     }
                     // Se for um país
                     else{
-                        schemaPais=json.getJSONObject("schema");
                         // Se a lista de indices de paises ainda não tiver o indice, adicionar
                         if (!paises.contains(json.getJSONObject("payload").getInt("country_id"))) {
                             paises.add(json.getJSONObject("payload").getInt("country_id"));
@@ -115,7 +111,6 @@ public class Customers {
 
                     // Converter de Sale para json e de json para string
                     JSONObject jsonObject = new JSONObject(s);
-                    jsonObject.append("schema",schemaItem);
                     String myJson = jsonObject.toString();
                     //System.out.println("Json novo:"+myJson);
                     // Adiciona ao tópico Sales
