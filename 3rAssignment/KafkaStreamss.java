@@ -62,8 +62,8 @@ public class KafkaStreamss {
         KTable<String, Integer> totalProfit = totalRevenue.join(totalExpenses,(r,e)->r-e);
         totalProfit.toStream().mapValues((k,v)-> k + "=>"+v).to("TopicTotalProfit", Produced.with(Serdes.String(),Serdes.String()));
 
-        // Total profit (join) (10)
-        KTable<String, Integer> avgSpentbyitem = purchases.mapValues(v->transform(v)).groupByKey(Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->(v1+v2)/profitperItem.toStream().groupByKey().count());
+        // Avg amount spent in each purchase  (11)
+        //KTable<String, Integer> avgSpentbyitem = purchases.mapValues(v->transform(v)).groupByKey(Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->(v1+v2)/profitperItem.toStream().groupByKey().count());
         //KTable<String, Integer> avgSpentbyitem = profitperItem.mapValues((k,v)-> k + "===> "+v/)
 
         // Item with the highest profit (13)
