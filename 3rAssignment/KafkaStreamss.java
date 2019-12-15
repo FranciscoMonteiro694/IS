@@ -48,46 +48,46 @@ public class KafkaStreamss {
 
         // Profit per item (join) (7)
         KTable<String, Integer> profitperItem = revenueperItem.join(expensesesperItem,(r,e)->r-e);
-        profitperItem.toStream().mapValues((k,v)-> k + "=>"+v).to("TopicProfitItem", Produced.with(Serdes.String(),Serdes.String()));
+        profitperItem.toStream().mapValues((k,v)->createJsonProfitItem(k,v)).to("TopicProfitItem", Produced.with(Serdes.String(),Serdes.String()));
 
         // Total revenue (8)
         KTable<String, Integer> totalRevenue = sales.mapValues(v->transform(v)).groupBy((k, v) -> "valor",Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->v1+v2);
-        totalRevenue.toStream().mapValues((k,v)-> k + "=>"+v).to("TopicTotalRevenue", Produced.with(Serdes.String(),Serdes.String()));
+        totalRevenue.toStream().mapValues((k,v)->createJsonTotalRev(k,v)).to("TopicTotalRevenue", Produced.with(Serdes.String(),Serdes.String()));
 
         // Total expenses (9)
         KTable<String, Integer> totalExpenses = purchases.mapValues(v->transform(v)).groupBy((k, v) -> "valor",Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->v1+v2);
-        totalExpenses.toStream().mapValues((k,v)-> k + "=>"+v).to("TopicTotalExpenses", Produced.with(Serdes.String(),Serdes.String()));
+        totalExpenses.toStream().mapValues((k,v)->createJsonTotalExp(k,v)).to("TopicTotalExpenses", Produced.with(Serdes.String(),Serdes.String()));
 
         // Total profit (join) (10)
         KTable<String, Integer> totalProfit = totalRevenue.join(totalExpenses,(r,e)->r-e);
-        totalProfit.toStream().mapValues((k,v)-> k + "=>"+v).to("TopicTotalProfit", Produced.with(Serdes.String(),Serdes.String()));
+        totalProfit.toStream().mapValues((k,v)->createJsonTotaProf(k,v)).to("TopicTotalProfit", Produced.with(Serdes.String(),Serdes.String()));
 
         // Avg amount spent in each purchase  (11)
         //KTable<String, Integer> avgSpentbyitem = purchases.mapValues(v->transform(v)).groupByKey(Grouped.with(Serdes.String(),Serdes.Integer())).reduce((v1,v2)->(v1+v2)/profitperItem.toStream().groupByKey().count());
         //KTable<String, Integer> avgSpentbyitem = profitperItem.mapValues((k,v)-> k + "===> "+v/)
 
-        // Item with the highest profit (13)
-        KTable<String, Integer> highestProfit = profitperItem.toStream().groupByKey(Grouped.with(Serdes.String(),Serdes.Integer())).reduce((aggValue, newValue) -> Math.max(aggValue, newValue));// erro aqui no reduce
-        //KTable<String, Integer> highestProfit = profitperItem.toStream().groupByKey(Grouped.with(Serdes.String(),Serdes.Integer())).aggregate((aggValue, newValue) -> Math.max(aggValue, newValue));
-        highestProfit.toStream().mapValues((k,v)-> k + "=>"+""+v).to("TopicMaxProfit", Produced.with(Serdes.String(),Serdes.String()));
+        // Item with the highest profit (13) (Falta corrigir este)
+        //KTable<String, Integer> highestProfit = profitperItem.toStream().groupByKey(Grouped.with(Serdes.String(),Serdes.Integer())).reduce((aggValue, newValue) -> Math.max(aggValue, newValue));// erro aqui no reduce
+        KTable<String, Integer> highestProfit = profitperItem.toStream().groupBy((k, v) -> "valor",Grouped.with(Serdes.String(),Serdes.Integer())).reduce((aggValue, newValue) -> Math.max(aggValue, newValue));
+        highestProfit.toStream().mapValues((k,v)->createJsonMaxProfit(k,v)).to("TopicMaxProfit", Produced.with(Serdes.String(),Serdes.String()));
 
         // Total revenue (last hour) (14)
         KTable<Windowed<String>, Integer> revenueLastHour = sales.mapValues(v->transform(v)).
                 groupBy((k, v) -> "valor",Grouped.with(Serdes.String(),Serdes.Integer())).
-                windowedBy(TimeWindows.of(TimeUnit.MINUTES.toMillis(1))).
+                windowedBy(TimeWindows.of(TimeUnit.MINUTES.toMillis(10))).
                 reduce((aggval, newval) -> aggval + newval, Materialized.as("lixo1"));
-        revenueLastHour.toStream((wk, v) -> wk.key()).map((k, v) -> new KeyValue<>(k, "" + k + "-->" + v)).to("TopicLastHourRevenue", Produced.with(Serdes.String(), Serdes.String()));
+        revenueLastHour.toStream((wk, v) -> wk.key()).map((k, v) -> new KeyValue<>(k,createJsonWindowrevenue(k,v))).to("TopicLastHourRevenue", Produced.with(Serdes.String(), Serdes.String()));
 
         // Total expenses (last hour) (15)
         KTable<Windowed<String>, Integer> expensesLastHour = purchases.mapValues(v->transform(v)).
                 groupBy((k, v) -> "valor",Grouped.with(Serdes.String(),Serdes.Integer())).
-                windowedBy(TimeWindows.of(TimeUnit.MINUTES.toMillis(1))).
+                windowedBy(TimeWindows.of(TimeUnit.MINUTES.toMillis(10))).
                 reduce((aggval, newval) -> aggval + newval, Materialized.as("lixo2"));
-        expensesLastHour.toStream((wk, v) -> wk.key()).map((k, v) -> new KeyValue<>(k, "" + k + "-->" + v)).to("TopicLastHourExpenses", Produced.with(Serdes.String(), Serdes.String()));
+        expensesLastHour.toStream((wk, v) -> wk.key()).map((k, v) -> new KeyValue<>(k,createJsonWindowexpenses(k,v))).to("TopicLastHourExpenses", Produced.with(Serdes.String(), Serdes.String()));
 
         // Total profit (last hour) (16)
         KTable<Windowed<String>, Integer> profitLastHour =  revenueLastHour.join(expensesLastHour,(r,e)->r-e);
-        profitLastHour.toStream((wk, v) -> wk.key()).map((k, v) -> new KeyValue<>(k, "" + k + "-->" + v)).to("TopicLastHourProfit", Produced.with(Serdes.String(), Serdes.String()));
+        profitLastHour.toStream((wk, v) -> wk.key()).map((k, v) -> new KeyValue<>(k,createJsonWindowprofit(k,v))).to("TopicLastHourProfit", Produced.with(Serdes.String(), Serdes.String()));
 
 
 
@@ -124,6 +124,65 @@ public class KafkaStreamss {
         return schema;
 
     }
+    public static String createJsonProfitItem(String k,int value){
+        System.out.println("O item "+k+" tem de profit: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"profit\"}],\"optional\":false},\"payload\":{\"item_id\":"+k+",\"profit\":"+ Integer.toString(value) +"}}";
+        //System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+    public static String createJsonTotalRev(String k,int value){
+        System.out.println("Total revenue: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"totalrevenue\"}],\"optional\":false},\"payload\":{\"item_id\":"+1+",\"totalrevenue\":"+ Integer.toString(value) +"}}";
+        //System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+    public static String createJsonTotalExp(String k,int value){
+        System.out.println("Total expenses: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"totalexpenses\"}],\"optional\":false},\"payload\":{\"item_id\":"+1+",\"totalexpenses\":"+ Integer.toString(value) +"}}";
+        //System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+    public static String createJsonTotaProf(String k,int value){
+        System.out.println("Total profit: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"totalprofit\"}],\"optional\":false},\"payload\":{\"item_id\":"+1+",\"totalprofit\":"+ Integer.toString(value) +"}}";
+        //System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+
+    public static String createJsonWindowrevenue(String k, int value ){
+        System.out.println("Window: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"lasthourrevenue\"}],\"optional\":false},\"payload\":{\"item_id\":"+1+",\"lasthourrevenue\":"+ Integer.toString(value) +"}}";
+        //System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+    public static String createJsonWindowexpenses(String k, int value ){
+        System.out.println("Window: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"lasthourexpenses\"}],\"optional\":false},\"payload\":{\"item_id\":"+1+",\"lasthourexpenses\":"+ Integer.toString(value) +"}}";
+        //System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+    public static String createJsonWindowprofit(String k, int value ){
+        System.out.println("Window: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"lasthourprofit\"}],\"optional\":false},\"payload\":{\"item_id\":"+1+",\"lasthourprofit\":"+ Integer.toString(value) +"}}";
+        //System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+
+    public static String createJsonMaxProfit(String k, int value ){
+        System.out.println("MaxProfit: "+value);
+        String schema = "{\"schema\":{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":false,\"field\":\"item_id\"},{\"type\":\"int32\",\"optional\":true,\"field\":\"maxprofit\"}],\"optional\":false},\"payload\":{\"item_id\":"+1+",\"maxprofit\":"+ Integer.toString(value) +"}}";
+        //System.out.println("Schema:         "+schema);
+        return schema;
+
+    }
+
     // Vai receber o value, pegar no units e price e multiplicar um pelo outro
     // Em principio funciona tanto para a revenue do item, como para a expenses
     private static int transform(String v) {

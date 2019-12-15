@@ -110,7 +110,7 @@ public class PurchaseOrders {
                     producer.send(new ProducerRecord<String, String>(topicPurchases, Integer.toString(p.getItem_id()), myJson));
                     System.out.println("Purchase adicionada!");
                     producer.close();
-                    Thread.sleep(10000);
+                    Thread.sleep(5000);
                 }
 
             }

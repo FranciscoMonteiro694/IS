@@ -119,7 +119,7 @@ public class Customers {
                     producer.send(new ProducerRecord<String, String>(topicSales, Integer.toString(s.getItem_id()), myJson));
                     System.out.println("Sale adicionada!");
                     producer.close();
-                    Thread.sleep(10000);
+                    Thread.sleep(5000);
                 }
             }
         } finally {
